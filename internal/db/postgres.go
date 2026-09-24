@@ -18,18 +18,18 @@ const (
 func NewPostgresPool(ctx context.Context, connURL string) (*pgxpool.Pool, error) {
 	config, err := pgxpool.ParseConfig(connURL)
 	if err != nil {
-		return nil, fmt.Errorf("ERROR - parse connection url: %w", err)
+		return nil, fmt.Errorf("parse connection url: %w", err)
 	}
 
 	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
-		return nil, fmt.Errorf("ERROR - create pgx pool: %w", err)
+		return nil, fmt.Errorf("create pgx pool: %w", err)
 	}
 
 	err = pingWithRetry(ctx, pool)
 	if err != nil {
 		pool.Close()
-		return nil, fmt.Errorf("ERROR - connection to postgres: %w", err)
+		return nil, fmt.Errorf("connection to postgres: %w", err)
 	}
 
 	log.Println("LOG - database connection pool established")
