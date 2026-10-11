@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -25,9 +26,16 @@ type DBConfig struct {
 	Pool       PoolConfig
 }
 
+type JWTConfig struct {
+	Secret          string
+	AccessTokenTTL  time.Duration
+	RefreshTokenTTL time.Duration
+}
+
 type Config struct {
 	AppPort string
 	DB      DBConfig
+	JWT     JWTConfig
 }
 
 func getEnv(key, defaultValue string) string {
@@ -38,11 +46,41 @@ func getEnv(key, defaultValue string) string {
 	return defaultValue
 }
 
+func getDurationEnv(key, defaultValue string) (time.Duration, error) {
+	duration, err := time.ParseDuration(getEnv(key, defaultValue))
+	if err != nil {
+		return 0, fmt.Errorf("parse %s: %w", key, err)
+	}
+	return duration, nil
+}
+
+func getRequiredEnv(key string) (string, error) {
+	value := getEnv(key, "")
+	if value == "" {
+		return "", fmt.Errorf("%s is not set", key)
+	}
+	return value, nil
+}
+
 func ConfigLoad() (*Config, error) {
 	err := godotenv.Load()
 	if err != nil {
 		log.Println("LOG - .env FILE NOT FOUND")
 	}
+
+	jwtSecret, err := getRequiredEnv("JWT_SECRET")
+	if err != nil {
+		return nil, err
+	}
+	accessTokenTTL, err := getDurationEnv("ACCESS_TOKEN_TTL", "15m")
+	if err != nil {
+		return nil, err
+	}
+	refreshTokenTTL, err := getDurationEnv("REFRESH_TOKEN_TTL", "720h")
+	if err != nil {
+		return nil, err
+	}
+
 	config := &Config{
 		AppPort: getEnv("APP_PORT", "8080"),
 		DB: DBConfig{
@@ -58,6 +96,11 @@ func ConfigLoad() (*Config, error) {
 				MaxConnLifetime: getEnv("POSTGRES_POOL_MAX_CONN_LIFETIME", "1h"),
 				MaxConnIdleTime: getEnv("POSTGRES_POOL_MAX_CONN_IDLE_TIME", "30m"),
 			},
+		},
+		JWT: JWTConfig{
+			Secret:          jwtSecret,
+			AccessTokenTTL:  accessTokenTTL,
+			RefreshTokenTTL: refreshTokenTTL,
 		},
 	}
 	log.Println("LOG - CONFIG LOADED")
