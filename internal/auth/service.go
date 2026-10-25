@@ -104,6 +104,7 @@ func (service *Service) Logout(ctx context.Context, refreshToken string) error {
 	return nil
 }
 
+// issueTokenPair generate new access and refresh tokens for the users
 func (service *Service) issueTokenPair(ctx context.Context, userID uuid.UUID) (*TokenPair, error) {
 	accessToken, err := service.tokenManager.GenerateAccessToken(userID)
 	if err != nil {
